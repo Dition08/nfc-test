@@ -14,6 +14,7 @@ import android.util.Log
 import android.widget.Button
 import android.widget.TextView
 import androidx.activity.ComponentActivity
+import java.io.IOException
 
 class MainActivity : ComponentActivity() {
     private lateinit var textView: TextView
@@ -63,22 +64,76 @@ class MainActivity : ComponentActivity() {
         handleNFCIntent(intent)
     }
 
+    @OptIn(ExperimentalStdlibApi::class)
     private fun handleNFCIntent(intent: Intent) {
-
         if (intent.action == NfcAdapter.ACTION_NDEF_DISCOVERED ||
             intent.action == NfcAdapter.ACTION_TECH_DISCOVERED) {
-//            updateState("Обрабатывается intent.")
-//            intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)?.also { rawMessages ->
-//                val messages: List<NdefMessage> = rawMessages.map { it as NdefMessage }
-//                updateState("Messages size: " + messages.size)
-//                processNdefMessages(messages)
-//            }
-            val rawMessages = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)
-            if (rawMessages != null) {
-                val ndefMessages = List<NdefMessage>(rawMessages.size) {rawMessages[it] as NdefMessage}
-                processNdefMessages(ndefMessages)
-            } else updateState("Сообщения пусты.")
-//            val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
+            val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
+            val handle = NfcV.get(tag)
+            val received = ByteArray(360)
+            for (i in 0 until 43 step 3) {
+                val cmd = byteArrayOf(
+                    0x02.toByte(),
+                    0x23.toByte(),
+                    i.toByte(),
+                    0x02.toByte()
+                )
+                val response = sendCmd(handle, cmd)
+
+                if (response.size == 25) {
+                    response.copyInto(received, i * 8, 1, response.size)
+                } else {
+                    Log.d("NFC", "------ Invalid response: " + response.size)
+                }
+            }
+            val receivedHex = received.toHexString()
+            Log.d("NFC", "------ Received: " + receivedHex)
+            updateState(receivedHex)
+        }
+    }
+
+//    private fun handleNFCIntent(intent: Intent) {
+//
+//        if (intent.action == NfcAdapter.ACTION_NDEF_DISCOVERED ||
+//            intent.action == NfcAdapter.ACTION_TECH_DISCOVERED) {
+////            updateState("Обрабатывается intent.")
+////            intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)?.also { rawMessages ->
+////                val messages: List<NdefMessage> = rawMessages.map { it as NdefMessage }
+////                updateState("Messages size: " + messages.size)
+////                processNdefMessages(messages)
+////            }
+//            val rawMessages = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)
+//            if (rawMessages != null) {
+//                val ndefMessages = List<NdefMessage>(rawMessages.size) {rawMessages[it] as NdefMessage}
+//                processNdefMessages(ndefMessages)
+//            } else updateState("Сообщения пусты.")
+////            val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
+//        }
+//    }
+
+    private fun sendCmd(handle: NfcV, cmd: ByteArray): ByteArray {
+        val startTime = System.currentTimeMillis()
+        while (true) {
+            try {
+                if (handle.isConnected) {
+                    handle.close()
+                }
+                handle.connect()
+                val received = handle.transceive(cmd)
+                handle.close()
+                return received
+            } catch (ioException: IOException) {
+                if (System.currentTimeMillis() > startTime + 3000) {
+//                    Toast.makeText(mainActivityRef.get(), "Scan timed out!", Toast.LENGTH_SHORT).show()
+                    Log.d("NFC", "------ Scan timed out!")
+                    return byteArrayOf()
+                }
+                try {
+                    Thread.sleep(100)
+                } catch (interruptedException: InterruptedException) {
+                    return byteArrayOf()
+                }
+            }
         }
     }
 
