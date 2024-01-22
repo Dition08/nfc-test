@@ -2,7 +2,6 @@ package com.example.nfctest
 
 import android.app.PendingIntent
 import android.content.Intent
-import android.nfc.NdefMessage
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.nfc.tech.Ndef
@@ -14,9 +13,23 @@ import android.util.Log
 import android.widget.Button
 import android.widget.TextView
 import androidx.activity.ComponentActivity
+import kotlinx.coroutines.*
+import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 
+
 class MainActivity : ComponentActivity() {
+    private val decodingUrl = "https://libre-backend.oxton.ru/insert"
+    private val decodingPassword = "YP98747cq3MtcdZr2KTdVqfeDmxmMmvV"
+
+    private val JSON: MediaType = "application/json".toMediaType()
+    private var client = OkHttpClient()
+
     private lateinit var textView: TextView
     private lateinit var nfcAdapter: NfcAdapter
 
@@ -59,7 +72,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        updateState("Получен новый intent, " + intent.action)
 
         handleNFCIntent(intent)
     }
@@ -87,29 +99,20 @@ class MainActivity : ComponentActivity() {
                 }
             }
             val receivedHex = received.toHexString()
-            Log.d("NFC", "------ Received: " + receivedHex)
-            updateState(receivedHex)
+            Log.d("NFC", "------ Received: $receivedHex")
+
+
+            val payload = "{\n" +
+                    "    \"data\": \"$receivedHex\",\n" +
+                    "    \"password\": \"$decodingPassword\"\n" +
+                    "}"
+            val answer = runBlocking {
+                sendToDecode(decodingUrl, payload)
+            }
+            Log.d("POST", "------ Received: $answer")
+            updateState(answer)
         }
     }
-
-//    private fun handleNFCIntent(intent: Intent) {
-//
-//        if (intent.action == NfcAdapter.ACTION_NDEF_DISCOVERED ||
-//            intent.action == NfcAdapter.ACTION_TECH_DISCOVERED) {
-////            updateState("Обрабатывается intent.")
-////            intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)?.also { rawMessages ->
-////                val messages: List<NdefMessage> = rawMessages.map { it as NdefMessage }
-////                updateState("Messages size: " + messages.size)
-////                processNdefMessages(messages)
-////            }
-//            val rawMessages = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)
-//            if (rawMessages != null) {
-//                val ndefMessages = List<NdefMessage>(rawMessages.size) {rawMessages[it] as NdefMessage}
-//                processNdefMessages(ndefMessages)
-//            } else updateState("Сообщения пусты.")
-////            val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
-//        }
-//    }
 
     private fun sendCmd(handle: NfcV, cmd: ByteArray): ByteArray {
         val startTime = System.currentTimeMillis()
@@ -137,22 +140,55 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun processNdefMessages(ndefMessages: List<NdefMessage>) {
-        var result = "NFC Data:"
-
-        for (ndefMessage in ndefMessages) {
-            for (record in ndefMessage.records) {
-                val text = String(record.payload)
-                result += "\n$text"
-            }
+    @Throws(IOException::class)
+    suspend fun sendToDecode(url: String, json: String): String {
+        return withContext(Dispatchers.IO) {
+            val body: RequestBody = json.toRequestBody(JSON)
+            val request: Request = Request.Builder()
+                .url(url)
+                .post(body)
+                .build()
+            val response = client.newCall(request).execute()
+            if (!response.isSuccessful) throw IOException("Unexpected code $response")
+            response.body?.string() ?: ""
         }
-
-        updateState(result)
     }
 
     private fun updateState(text: String) {
         textView.text = text
     }
+
+//    private fun handleNFCIntent(intent: Intent) {
+//
+//        if (intent.action == NfcAdapter.ACTION_NDEF_DISCOVERED ||
+//            intent.action == NfcAdapter.ACTION_TECH_DISCOVERED) {
+////            updateState("Обрабатывается intent.")
+////            intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)?.also { rawMessages ->
+////                val messages: List<NdefMessage> = rawMessages.map { it as NdefMessage }
+////                updateState("Messages size: " + messages.size)
+////                processNdefMessages(messages)
+////            }
+//            val rawMessages = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)
+//            if (rawMessages != null) {
+//                val ndefMessages = List<NdefMessage>(rawMessages.size) {rawMessages[it] as NdefMessage}
+//                processNdefMessages(ndefMessages)
+//            } else updateState("Сообщения пусты.")
+////            val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
+//        }
+//    }
+
+//    private fun processNdefMessages(ndefMessages: List<NdefMessage>) {
+//        var result = "NFC Data:"
+//
+//        for (ndefMessage in ndefMessages) {
+//            for (record in ndefMessage.records) {
+//                val text = String(record.payload)
+//                result += "\n$text"
+//            }
+//        }
+//
+//        updateState(result)
+//    }
 
 //    //Saving test
 //    data class MyObject(val name: String, val age: Int)
