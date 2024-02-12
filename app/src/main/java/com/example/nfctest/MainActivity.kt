@@ -27,6 +27,27 @@ class MainActivity : ComponentActivity() {
     private val decodingUrl = "https://libre-backend.oxton.ru/insert"
     private val decodingPassword = "YP98747cq3MtcdZr2KTdVqfeDmxmMmvV"
 
+    private val states = arrayOf(
+        null,
+        "sensor not yet started",
+        "sensor in warm up phase",
+        "sensor ready and working (up to 14 days and twelve hours)",
+        "sensor expired (for the following twelve hours, FRAM data section content does not change any more)",
+        "sensor shutdown",
+        "sensor failure"
+    )
+    private val dataBlockLength = 6
+    private val trendDataBlocksAmount = 16
+    private val historyDataBlocksAmount = 32
+    private val modifier = 180f
+    private interface DataBody {
+        var crc: ByteArray
+        var nextTrendBlock: Int
+        var nextHistoryBlock: Int
+        var trendDataBlocks: Array<ByteArray>
+        var historyDataBlocks: Array<ByteArray>
+    }
+
     private val JSON: MediaType = "application/json".toMediaType()
     private var client = OkHttpClient()
 
@@ -111,6 +132,7 @@ class MainActivity : ComponentActivity() {
             }
             Log.d("POST", "------ Received: $answer")
             updateState(answer)
+            showReport(received)
         }
     }
 
@@ -156,6 +178,134 @@ class MainActivity : ComponentActivity() {
 
     private fun updateState(text: String) {
         textView.text = text
+    }
+
+    //----------------------------------------------------------------------------------------------
+
+    private fun showReport(hex: ByteArray) {
+        val hexFragmented = fragmentHex(hex)
+        val sensorState = hexFragmented.sliceArray(IntRange(0, 3));
+        val dataBody = hexFragmented.sliceArray(IntRange(3, 40));
+        val footer = hexFragmented.sliceArray(IntRange(40, 42));
+        val unknown = hexFragmented.sliceArray(IntRange(42, 44));
+        val bodyParsed = parseBody(dataBody);
+
+        var report = ""
+        report += "\nsensorState: $sensorState"
+        report += "\nOUTPUT:"
+        report += prepareReport(sensorState, bodyParsed);
+        updateState(report)
+    }
+
+    private fun translateBytesToNumber(bytes: ByteArray): Int {
+        return (256 * (bytes[1].toInt() and 0xFF) + (bytes[0].toInt() and 0xFF)) and 0x1FFF;
+    }
+
+    private fun fragmentHex(hex: ByteArray): Array<ByteArray> {
+        val result: ArrayList<ByteArray> = arrayListOf()
+        var i = 0
+        var j = 0
+        while (i < hex.size) {
+            val fragment = hex.sliceArray(IntRange(i, i + 7))
+            result.add(fragment)
+            j++
+            i += 8
+        }
+
+        return result.toTypedArray();
+    }
+
+    private fun extractSensorState(sensorState: Array<ByteArray>): String {
+        var result = states[sensorState[0][4].toInt()];
+        if (result == null) result = "Unknown state"
+        return result;
+    }
+
+    private fun parseBody(body: Array<ByteArray>): DataBody {
+        val result: DataBody = object : DataBody {
+            override var crc: ByteArray = byteArrayOf()
+            override var nextTrendBlock: Int = 0
+            override var nextHistoryBlock: Int = 0
+            override var trendDataBlocks: Array<ByteArray> = arrayOf()
+            override var historyDataBlocks: Array<ByteArray> = arrayOf()
+        };
+
+        result.crc = body[0].sliceArray(IntRange(0, 2))
+        result.nextTrendBlock = body[0][2].toInt()
+        result.nextHistoryBlock = body[0][3].toInt()
+        result.trendDataBlocks = extractDataBlocks(body, 0, 4, dataBlockLength, trendDataBlocksAmount);
+        result.historyDataBlocks = extractDataBlocks(body, 12, 4, dataBlockLength, historyDataBlocksAmount);
+
+        return result;
+    }
+
+    private fun extractDataBlocks(body: Array<ByteArray>, startingBlock: Int, startingByte: Int, blockLength: Int, blockAmount: Int): Array<ByteArray> {
+        val result: ArrayList<ByteArray> = arrayListOf()
+
+        var i = startingBlock
+        var j = startingByte
+        var k = 0
+        while (k < blockAmount) {
+            var l = 0
+            val dataBlock = arrayListOf<Byte>()
+            while (l < blockLength) {
+                dataBlock.add(body[i][j])
+                if (++j >= body[i].size) {
+                    i++
+                    j = 0
+                }
+                l++
+            }
+            result.add(dataBlock.toByteArray())
+            k++
+        }
+
+        return result.toTypedArray();
+    }
+
+    private fun prepareReport(sensorState: Array<ByteArray>, body: DataBody): String {
+        var result = "\nDevice readings:"
+        result += "\n Current sensor state is: " + extractSensorState(sensorState)
+
+        result += "\n Trend data blocks, bytes:" + showDataBlocks(body.trendDataBlocks)
+        result += "\n History data blocks, bytes:" + showDataBlocks(body.historyDataBlocks)
+        result += "\n Trend data blocks, raw values:" + convertDataBlocksToString(body.trendDataBlocks)
+        result += "\n History data blocks, raw values:" + convertDataBlocksToString(body.historyDataBlocks)
+        result += "\n Trend data blocks, mmol/L (supposedly):" + convertDataBlocksTommolString(body.trendDataBlocks)
+        result += "\n History data blocks, mmol/L (supposedly):" + convertDataBlocksTommolString(body.historyDataBlocks)
+
+        return result
+    }
+
+    @OptIn(ExperimentalStdlibApi::class)
+    private fun showDataBlocks(dataBlocks: Array<ByteArray>): String {
+        var result = ""
+
+        for ((i, dataBlock) in dataBlocks.withIndex()) {
+            result += "\n  $i: ${dataBlock.toHexString()}"
+        }
+
+        return result
+    }
+
+    private fun convertDataBlocksToString(dataBlocks: Array<ByteArray>): String {
+        var result = ""
+
+        for ((i, dataBlock) in dataBlocks.withIndex()) {
+            result += "\n  $i: " + translateBytesToNumber(dataBlock)
+        }
+
+        return result
+    }
+
+    private fun convertDataBlocksTommolString(dataBlocks: Array<ByteArray>): String {
+        var result = ""
+
+        for ((i, dataBlock) in dataBlocks.withIndex()) {
+            result += "\n  $i: " + translateBytesToNumber(dataBlock)/modifier
+        }
+
+        return result
     }
 
 //    private fun handleNFCIntent(intent: Intent) {
