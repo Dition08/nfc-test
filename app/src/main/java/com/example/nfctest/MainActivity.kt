@@ -1,87 +1,38 @@
 package com.example.nfctest
 
-import android.app.PendingIntent
 import android.content.Intent
-import android.nfc.NfcAdapter
-import android.nfc.Tag
-import android.nfc.tech.Ndef
-import android.nfc.tech.NdefFormatable
-import android.nfc.tech.NfcA
-import android.nfc.tech.NfcV
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
 import androidx.activity.ComponentActivity
-import kotlinx.coroutines.*
-import okhttp3.MediaType
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
-import java.io.IOException
-
+import java.util.Date
 
 class MainActivity : ComponentActivity() {
-    private val decodingUrl = "https://libre-backend.oxton.ru/insert"
-    private val decodingPassword = "YP98747cq3MtcdZr2KTdVqfeDmxmMmvV"
-
-    private val states = arrayOf(
-        null,
-        "sensor not yet started",
-        "sensor in warm up phase",
-        "sensor ready and working (up to 14 days and twelve hours)",
-        "sensor expired (for the following twelve hours, FRAM data section content does not change any more)",
-        "sensor shutdown",
-        "sensor failure"
-    )
-    private val dataBlockLength = 6
-    private val trendDataBlocksAmount = 16
-    private val historyDataBlocksAmount = 32
-    private val modifier = 180f
-    private interface DataBody {
-        var crc: ByteArray
-        var nextTrendBlock: Int
-        var nextHistoryBlock: Int
-        var trendDataBlocks: Array<ByteArray>
-        var historyDataBlocks: Array<ByteArray>
-    }
-
-    private val JSON: MediaType = "application/json".toMediaType()
-    private var client = OkHttpClient()
-
+    private val httpService = HttpService()
+    private lateinit var nfcService: NFCService
     private lateinit var textView: TextView
-    private lateinit var nfcAdapter: NfcAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.layout)
-        val adapter = NfcAdapter.getDefaultAdapter(this)
-
         textView = findViewById(R.id.textView)
         val button: Button = findViewById(R.id.button)
 
-        if (adapter == null) {
-            updateState("NFC не поддерживается на данном устройстве.")
-        } else {
-            nfcAdapter = adapter
+        nfcService = NFCService(this)
+
+//        val bytes = byteArrayOf(0x00.toByte(),0x47.toByte(),0x08.toByte(),0x7b.toByte(),0x06.toByte(),0x00.toByte(),0x03.toByte(),0xb9.toByte(),0x00.toByte(),0x00.toByte(),0x00.toByte(),0x00.toByte(),0x13.toByte(),0x76.toByte(),0x21.toByte(),0x00.toByte(),0x00.toByte(),0x00.toByte(),0x00.toByte(),0x00.toByte(),0x00.toByte(),0x00.toByte(),0x00.toByte(),0x00.toByte(),0x9b.toByte(),0xaa.toByte(),0x05.toByte(),0x1a.toByte(),0x95.toByte(),0x04.toByte(),0xc8.toByte(),0x94.toByte(),0x5a.toByte(),0x00.toByte(),0xa0.toByte(),0x04.toByte(),0xc8.toByte(),0x90.toByte(),0x5a.toByte(),0x00.toByte(),0xb1.toByte(),0x04.toByte(),0xc8.toByte(),0x64.toByte(),0x9a.toByte(),0x00.toByte(),0xba.toByte(),0x04.toByte(),0xc8.toByte(),0x5c.toByte(),0x5a.toByte(),0x00.toByte(),0xc2.toByte(),0x04.toByte(),0xc8.toByte(),0x74.toByte(),0x5a.toByte(),0x00.toByte(),0x28.toByte(),0x04.toByte(),0xc8.toByte(),0xf0.toByte(),0x59.toByte(),0x00.toByte(),0x30.toByte(),0x04.toByte(),0xc8.toByte(),0xfc.toByte(),0x59.toByte(),0x00.toByte(),0x2e.toByte(),0x04.toByte(),0xc8.toByte(),0x34.toByte(),0x5a.toByte(),0x00.toByte(),0x34.toByte(),0x04.toByte(),0xc8.toByte(),0x50.toByte(),0x9a.toByte(),0x00.toByte(),0x3d.toByte(),0x04.toByte(),0xc8.toByte(),0x60.toByte(),0x5a.toByte(),0x00.toByte(),0x48.toByte(),0x04.toByte(),0xc8.toByte(),0x6c.toByte(),0x5a.toByte(),0x00.toByte(),0x57.toByte(),0x04.toByte(),0xc8.toByte(),0x78.toByte(),0x5a.toByte(),0x00.toByte(),0x62.toByte(),0x04.toByte(),0xc8.toByte(),0x84.toByte(),0x5a.toByte(),0x00.toByte(),0x6d.toByte(),0x04.toByte(),0xc8.toByte(),0x8c.toByte(),0x1a.toByte(),0x80.toByte(),0x79.toByte(),0x04.toByte(),0xc8.toByte(),0x90.toByte(),0x5a.toByte(),0x00.toByte(),0x87.toByte(),0x04.toByte(),0xc8.toByte(),0x94.toByte(),0x5a.toByte(),0x00.toByte(),0xfe.toByte(),0x03.toByte(),0xc8.toByte(),0x38.toByte(),0x5b.toByte(),0x00.toByte(),0xf4.toByte(),0x03.toByte(),0xc8.toByte(),0xbc.toByte(),0x5a.toByte(),0x00.toByte(),0xf9.toByte(),0x03.toByte(),0xc8.toByte(),0x88.toByte(),0x5a.toByte(),0x00.toByte(),0xfd.toByte(),0x03.toByte(),0xc8.toByte(),0x08.toByte(),0x5b.toByte(),0x00.toByte(),0x0e.toByte(),0x04.toByte(),0xc8.toByte(),0x58.toByte(),0x5a.toByte(),0x00.toByte(),0x18.toByte(),0x04.toByte(),0xc8.toByte(),0xa0.toByte(),0x5a.toByte(),0x00.toByte(),0x25.toByte(),0x04.toByte(),0xc8.toByte(),0x48.toByte(),0x5a.toByte(),0x00.toByte(),0xc1.toByte(),0x04.toByte(),0xc8.toByte(),0xb4.toByte(),0x5a.toByte(),0x00.toByte(),0x94.toByte(),0x05.toByte(),0xc8.toByte(),0x2c.toByte(),0x5b.toByte(),0x00.toByte(),0x43.toByte(),0x06.toByte(),0xc8.toByte(),0x0c.toByte(),0x9a.toByte(),0x00.toByte(),0x1f.toByte(),0x06.toByte(),0xc8.toByte(),0x9c.toByte(),0x59.toByte(),0x00.toByte(),0x16.toByte(),0x06.toByte(),0xc8.toByte(),0x48.toByte(),0x99.toByte(),0x00.toByte(),0xbd.toByte(),0x05.toByte(),0xc8.toByte(),0xb0.toByte(),0x58.toByte(),0x00.toByte(),0x68.toByte(),0x05.toByte(),0xc8.toByte(),0x98.toByte(),0x97.toByte(),0x00.toByte(),0xde.toByte(),0x04.toByte(),0xc8.toByte(),0x7c.toByte(),0x98.toByte(),0x00.toByte(),0x05.toByte(),0x05.toByte(),0xc8.toByte(),0xb0.toByte(),0x98.toByte(),0x00.toByte(),0x96.toByte(),0x04.toByte(),0xc8.toByte(),0x34.toByte(),0x99.toByte(),0x00.toByte(),0x77.toByte(),0x04.toByte(),0xc8.toByte(),0xb0.toByte(),0x99.toByte(),0x00.toByte(),0xa4.toByte(),0x04.toByte(),0xc8.toByte(),0xc8.toByte(),0x99.toByte(),0x00.toByte(),0x63.toByte(),0x04.toByte(),0xc8.toByte(),0x34.toByte(),0xda.toByte(),0x00.toByte(),0x7d.toByte(),0x04.toByte(),0xc8.toByte(),0x64.toByte(),0x5a.toByte(),0x00.toByte(),0x8b.toByte(),0x04.toByte(),0xc8.toByte(),0x3c.toByte(),0x9a.toByte(),0x00.toByte(),0xc4.toByte(),0x04.toByte(),0xc8.toByte(),0x44.toByte(),0x5b.toByte(),0x00.toByte(),0x4e.toByte(),0x04.toByte(),0xc8.toByte(),0x50.toByte(),0x98.toByte(),0x00.toByte(),0x87.toByte(),0x03.toByte(),0xc8.toByte(),0x34.toByte(),0x5a.toByte(),0x00.toByte(),0x1a.toByte(),0x04.toByte(),0xc8.toByte(),0xf0.toByte(),0x59.toByte(),0x00.toByte(),0xe8.toByte(),0x04.toByte(),0xc8.toByte(),0x90.toByte(),0x5b.toByte(),0x00.toByte(),0x51.toByte(),0x04.toByte(),0xc8.toByte(),0xf0.toByte(),0x5a.toByte(),0x00.toByte(),0xdd.toByte(),0x03.toByte(),0xc8.toByte(),0xe8.toByte(),0x5a.toByte(),0x00.toByte(),0xb5.toByte(),0x03.toByte(),0xc8.toByte(),0xbc.toByte(),0x5a.toByte(),0x00.toByte(),0xf4.toByte(),0x03.toByte(),0xc8.toByte(),0xa8.toByte(),0x5a.toByte(),0x00.toByte(),0x01.toByte(),0x04.toByte(),0xc8.toByte(),0xc4.toByte(),0x5a.toByte(),0x00.toByte(),0x76.toByte(),0x21.toByte(),0x00.toByte(),0x00.toByte(),0xe0.toByte(),0xef.toByte(),0x00.toByte(),0x08.toByte(),0xef.toByte(),0x0e.toByte(),0xb9.toByte(),0x50.toByte(),0x14.toByte(),0x07.toByte(),0x96.toByte(),0x80.toByte(),0x5a.toByte(),0x00.toByte(),0xed.toByte(),0xa6.toByte(),0x0a.toByte(),0x70.toByte(),0x1a.toByte(),0xc8.toByte(),0x04.toByte(),0xc6.toByte(),0x99.toByte(),0x66.toByte(),0xae.toByte(),0xf9.toByte(),0x21.toByte(),0x83.toByte(),0xf2.toByte(),0x90.toByte(),0x07.toByte(),0x00.toByte(),0x06.toByte(),0x08.toByte(),0x02.toByte(),0x24.toByte(),0x0c.toByte(),0x43.toByte(),0x17.toByte(),0x3c.toByte())
+//        button.setOnClickListener { showReport( bytes, Date() ) }
+        if (nfcService.nfcIsAvailable) {
             updateState("...")
             button.setOnClickListener { startListeningToNFC() }
+        } else {
+            updateState("NFC не поддерживается на данном устройстве.")
         }
     }
 
     private fun startListeningToNFC() {
-        val nfcPendingIntent = PendingIntent.getActivity(this, 0,
-            Intent(this, javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
-            PendingIntent.FLAG_MUTABLE)
-        val techListsArray = arrayOf(
-            arrayOf(NfcA::class.java.name),
-            arrayOf(NfcV::class.java.name),
-            arrayOf(Ndef::class.java.name),
-            arrayOf(NdefFormatable::class.java.name),
-        )
-        nfcAdapter.enableForegroundDispatch(this, nfcPendingIntent, null, techListsArray)
+        nfcService.startListening(this)
         updateState("Просканируйте NFC-метку.")
     }
 
@@ -99,213 +50,25 @@ class MainActivity : ComponentActivity() {
 
     @OptIn(ExperimentalStdlibApi::class)
     private fun handleNFCIntent(intent: Intent) {
-        if (intent.action == NfcAdapter.ACTION_NDEF_DISCOVERED ||
-            intent.action == NfcAdapter.ACTION_TECH_DISCOVERED) {
-            val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
-            val handle = NfcV.get(tag)
-            val received = ByteArray(360)
-            for (i in 0 until 43 step 3) {
-                val cmd = byteArrayOf(
-                    0x02.toByte(),
-                    0x23.toByte(),
-                    i.toByte(),
-                    0x02.toByte()
-                )
-                val response = sendCmd(handle, cmd)
-
-                if (response.size == 25) {
-                    response.copyInto(received, i * 8, 1, response.size)
-                } else {
-                    Log.d("NFC", "------ Invalid response: " + response.size)
-                }
-            }
+        if (nfcService.checkIntentValidity(intent)) {
+            val received = nfcService.requestDataFromDevice(intent)
+            val measureDate = Date()
             val receivedHex = received.toHexString()
+            val answer = httpService.sendToDecode(receivedHex, measureDate)
             Log.d("NFC", "------ Received: $receivedHex")
-
-
-            val payload = "{\n" +
-                    "    \"data\": \"$receivedHex\",\n" +
-                    "    \"password\": \"$decodingPassword\"\n" +
-                    "}"
-            val answer = runBlocking {
-                sendToDecode(decodingUrl, payload)
-            }
             Log.d("POST", "------ Received: $answer")
-            updateState(answer)
-            showReport(received)
+            //updateState(answer)
+            showReport(received, measureDate)
         }
     }
 
-    private fun sendCmd(handle: NfcV, cmd: ByteArray): ByteArray {
-        val startTime = System.currentTimeMillis()
-        while (true) {
-            try {
-                if (handle.isConnected) {
-                    handle.close()
-                }
-                handle.connect()
-                val received = handle.transceive(cmd)
-                handle.close()
-                return received
-            } catch (ioException: IOException) {
-                if (System.currentTimeMillis() > startTime + 3000) {
-//                    Toast.makeText(mainActivityRef.get(), "Scan timed out!", Toast.LENGTH_SHORT).show()
-                    Log.d("NFC", "------ Scan timed out!")
-                    return byteArrayOf()
-                }
-                try {
-                    Thread.sleep(100)
-                } catch (interruptedException: InterruptedException) {
-                    return byteArrayOf()
-                }
-            }
-        }
-    }
-
-    @Throws(IOException::class)
-    suspend fun sendToDecode(url: String, json: String): String {
-        return withContext(Dispatchers.IO) {
-            val body: RequestBody = json.toRequestBody(JSON)
-            val request: Request = Request.Builder()
-                .url(url)
-                .post(body)
-                .build()
-            val response = client.newCall(request).execute()
-            if (!response.isSuccessful) throw IOException("Unexpected code $response")
-            response.body?.string() ?: ""
-        }
+    private fun showReport(hex: ByteArray, timestamp: Date) {
+        val data = DeviceData(hex, timestamp);
+        updateState(data.prepareReport());
     }
 
     private fun updateState(text: String) {
         textView.text = text
-    }
-
-    //----------------------------------------------------------------------------------------------
-
-    private fun showReport(hex: ByteArray) {
-        val hexFragmented = fragmentHex(hex)
-        val sensorState = hexFragmented.sliceArray(IntRange(0, 3));
-        val dataBody = hexFragmented.sliceArray(IntRange(3, 40));
-        val footer = hexFragmented.sliceArray(IntRange(40, 42));
-        val unknown = hexFragmented.sliceArray(IntRange(42, 44));
-        val bodyParsed = parseBody(dataBody);
-
-        var report = ""
-        report += "\nsensorState: $sensorState"
-        report += "\nOUTPUT:"
-        report += prepareReport(sensorState, bodyParsed);
-        updateState(report)
-    }
-
-    private fun translateBytesToNumber(bytes: ByteArray): Int {
-        return (256 * (bytes[1].toInt() and 0xFF) + (bytes[0].toInt() and 0xFF)) and 0x1FFF;
-    }
-
-    private fun fragmentHex(hex: ByteArray): Array<ByteArray> {
-        val result: ArrayList<ByteArray> = arrayListOf()
-        var i = 0
-        var j = 0
-        while (i < hex.size) {
-            val fragment = hex.sliceArray(IntRange(i, i + 7))
-            result.add(fragment)
-            j++
-            i += 8
-        }
-
-        return result.toTypedArray();
-    }
-
-    private fun extractSensorState(sensorState: Array<ByteArray>): String {
-        var result = states[sensorState[0][4].toInt()];
-        if (result == null) result = "Unknown state"
-        return result;
-    }
-
-    private fun parseBody(body: Array<ByteArray>): DataBody {
-        val result: DataBody = object : DataBody {
-            override var crc: ByteArray = byteArrayOf()
-            override var nextTrendBlock: Int = 0
-            override var nextHistoryBlock: Int = 0
-            override var trendDataBlocks: Array<ByteArray> = arrayOf()
-            override var historyDataBlocks: Array<ByteArray> = arrayOf()
-        };
-
-        result.crc = body[0].sliceArray(IntRange(0, 2))
-        result.nextTrendBlock = body[0][2].toInt()
-        result.nextHistoryBlock = body[0][3].toInt()
-        result.trendDataBlocks = extractDataBlocks(body, 0, 4, dataBlockLength, trendDataBlocksAmount);
-        result.historyDataBlocks = extractDataBlocks(body, 12, 4, dataBlockLength, historyDataBlocksAmount);
-
-        return result;
-    }
-
-    private fun extractDataBlocks(body: Array<ByteArray>, startingBlock: Int, startingByte: Int, blockLength: Int, blockAmount: Int): Array<ByteArray> {
-        val result: ArrayList<ByteArray> = arrayListOf()
-
-        var i = startingBlock
-        var j = startingByte
-        var k = 0
-        while (k < blockAmount) {
-            var l = 0
-            val dataBlock = arrayListOf<Byte>()
-            while (l < blockLength) {
-                dataBlock.add(body[i][j])
-                if (++j >= body[i].size) {
-                    i++
-                    j = 0
-                }
-                l++
-            }
-            result.add(dataBlock.toByteArray())
-            k++
-        }
-
-        return result.toTypedArray();
-    }
-
-    private fun prepareReport(sensorState: Array<ByteArray>, body: DataBody): String {
-        var result = "\nDevice readings:"
-        result += "\n Current sensor state is: " + extractSensorState(sensorState)
-
-        result += "\n Trend data blocks, bytes:" + showDataBlocks(body.trendDataBlocks)
-        result += "\n History data blocks, bytes:" + showDataBlocks(body.historyDataBlocks)
-        result += "\n Trend data blocks, raw values:" + convertDataBlocksToString(body.trendDataBlocks)
-        result += "\n History data blocks, raw values:" + convertDataBlocksToString(body.historyDataBlocks)
-        result += "\n Trend data blocks, mmol/L (supposedly):" + convertDataBlocksTommolString(body.trendDataBlocks)
-        result += "\n History data blocks, mmol/L (supposedly):" + convertDataBlocksTommolString(body.historyDataBlocks)
-
-        return result
-    }
-
-    @OptIn(ExperimentalStdlibApi::class)
-    private fun showDataBlocks(dataBlocks: Array<ByteArray>): String {
-        var result = ""
-
-        for ((i, dataBlock) in dataBlocks.withIndex()) {
-            result += "\n  $i: ${dataBlock.toHexString()}"
-        }
-
-        return result
-    }
-
-    private fun convertDataBlocksToString(dataBlocks: Array<ByteArray>): String {
-        var result = ""
-
-        for ((i, dataBlock) in dataBlocks.withIndex()) {
-            result += "\n  $i: " + translateBytesToNumber(dataBlock)
-        }
-
-        return result
-    }
-
-    private fun convertDataBlocksTommolString(dataBlocks: Array<ByteArray>): String {
-        var result = ""
-
-        for ((i, dataBlock) in dataBlocks.withIndex()) {
-            result += "\n  $i: " + translateBytesToNumber(dataBlock)/modifier
-        }
-
-        return result
     }
 
 //    private fun handleNFCIntent(intent: Intent) {
