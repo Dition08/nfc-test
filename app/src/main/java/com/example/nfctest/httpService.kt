@@ -21,7 +21,7 @@ class HttpService {
     fun sendToDecode(receivedHex: String, date: Date): String {
         val payload = "{\n" +
                 "    \"data\": \"$receivedHex\",\n" +
-                "    \"date\": \"${date}\",\n" +
+                "    \"timestamp\": \"${date.time}\",\n" +
                 "    \"password\": \"$decodingPassword\"\n" +
                 "}"
 
@@ -36,7 +36,9 @@ class HttpService {
                 .post(body)
                 .build()
             val response = client.newCall(request).execute()
-            if (!response.isSuccessful) throw IOException("Unexpected code $response")
+            if (!response.isSuccessful) {
+                throw IOException("Unexpected code $response")
+            }
             response.body?.string() ?: ""
         }
     }

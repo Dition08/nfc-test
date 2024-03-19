@@ -12,7 +12,7 @@ import android.nfc.tech.NfcV
 import android.util.Log
 import java.io.IOException
 
-class NFCService(activity: Activity) {
+class NFCService(private val activity: Activity) {
     private lateinit var nfcAdapter: NfcAdapter
     var nfcIsAvailable = false
 
@@ -24,7 +24,7 @@ class NFCService(activity: Activity) {
         }
     }
 
-    fun startListening(activity: Activity) {
+    fun startListening() {
         val nfcPendingIntent = PendingIntent.getActivity(activity, 0,
             Intent(activity, javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
             PendingIntent.FLAG_MUTABLE)
@@ -42,7 +42,7 @@ class NFCService(activity: Activity) {
                 intent.action == NfcAdapter.ACTION_TECH_DISCOVERED
     }
 
-    fun requestDataFromDevice(intent: Intent): ByteArray {
+    fun requestDataFromDevice(intent: Intent): ByteArray? {
         val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
         val handle = NfcV.get(tag)
         val received = ByteArray(360)
@@ -59,6 +59,7 @@ class NFCService(activity: Activity) {
                 response.copyInto(received, i * 8, 1, response.size)
             } else {
                 Log.d("NFC", "------ Invalid response: " + response.size)
+                return null
             }
         }
 
