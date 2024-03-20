@@ -42,6 +42,4 @@ class HttpService() {
             response.body?.string() ?: ""
         }
     }
-
-
 }
