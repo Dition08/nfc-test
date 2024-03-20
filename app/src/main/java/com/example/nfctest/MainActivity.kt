@@ -39,18 +39,10 @@ class MainActivity : ComponentActivity() {
         super.onStart()
 
         log("Starting...")
-    }
-
-    override fun onResume() {
-        super.onResume()
-
-        log("Resuming...")
 
         if (nfcService.nfcIsAvailable) {
             nfcService.startListening()
         }
-
-//        handleNFCIntent(intent)
     }
 
     override fun onPause() {
@@ -59,6 +51,14 @@ class MainActivity : ComponentActivity() {
         log("Pausing...")
 
         nfcService.stopListening()
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        log("Resuming...")
+
+        handleNFCIntent(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
