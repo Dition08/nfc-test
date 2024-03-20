@@ -1,8 +1,14 @@
 package com.example.nfctest
 
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.nfc.NfcAdapter
+import android.nfc.Tag
+import android.nfc.tech.Ndef
+import android.nfc.tech.NdefFormatable
+import android.nfc.tech.NfcA
+import android.nfc.tech.NfcV
 import android.os.Build
 import android.os.Bundle
 import android.os.Vibrator
@@ -10,9 +16,18 @@ import android.provider.Settings
 import android.util.Log
 import android.widget.TextView
 import androidx.activity.ComponentActivity
+import java.io.IOException
 import java.util.Date
 
 class MainActivity : ComponentActivity() {
+    companion object {
+        private val validIntents = arrayOf(
+            NfcAdapter.ACTION_TAG_DISCOVERED,
+            NfcAdapter.ACTION_NDEF_DISCOVERED,
+            NfcAdapter.ACTION_TECH_DISCOVERED
+        )
+    }
+
     private val httpService = HttpService()
     private lateinit var deviceService: DeviceService
 
@@ -62,7 +77,7 @@ class MainActivity : ComponentActivity() {
         if (!nfcAdapter.isEnabled) {
             openNfcSettings()
         }
-        if (nfcIsAvailable) NFCHelper.startListening(this, nfcAdapter)
+        if (nfcIsAvailable) startListening()
     }
 
     override fun onPause() {
@@ -70,7 +85,7 @@ class MainActivity : ComponentActivity() {
 
 //        log("Pausing...")
 
-        if (nfcIsAvailable) NFCHelper.stopListening(this, nfcAdapter)
+        if (nfcIsAvailable) stopListening()
     }
 
 //    override fun onStop() {
@@ -88,6 +103,33 @@ class MainActivity : ComponentActivity() {
         handleNFCIntent(intent)
     }
 
+    private fun startListening() {
+//        log("Dispatch is active: $dispatchIsActive")
+//        if (!dispatchIsActive) {
+        val nfcPendingIntent = PendingIntent.getActivity(this, 0,
+            Intent(this, javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+            PendingIntent.FLAG_MUTABLE)
+        val techListsArray = arrayOf(
+            arrayOf(NfcA::class.java.name),
+            arrayOf(NfcV::class.java.name),
+            arrayOf(Ndef::class.java.name),
+            arrayOf(NdefFormatable::class.java.name),
+        )
+        nfcAdapter.enableForegroundDispatch(this, nfcPendingIntent, null, techListsArray)
+//            dispatchIsActive = true
+
+        Log.d("NFC", "------ NFC is listening.")
+//        }
+    }
+
+    private fun stopListening() {
+//        log("Dispatch is active: $dispatchIsActive")
+//        if (dispatchIsActive) {
+        nfcAdapter.disableForegroundDispatch(this)
+//            dispatchIsActive = false
+//        }
+    }
+
     private fun openNfcSettings() {
         val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             Intent(Settings.Panel.ACTION_NFC)
@@ -99,8 +141,8 @@ class MainActivity : ComponentActivity() {
 
     private fun handleNFCIntent(intent: Intent) {
         log("Processing intent:\n${intent.action}")
-        if (NFCHelper.checkIntentValidity(intent)) {
-            val received: ByteArray = NFCHelper.requestDataFromDevice(intent)
+        if (validIntents.contains(intent.action)) {
+            val received: ByteArray = requestDataFromDevice(intent)
 //            try {
 //            } catch (error: Error) {
 //                notifyUser("${Status.SCANFAILURE}\n$error")
@@ -109,6 +151,56 @@ class MainActivity : ComponentActivity() {
 //            }
             val measureDate = Date()
             notifyServer(received, measureDate)
+        }
+    }
+
+    private fun requestDataFromDevice(intent: Intent): ByteArray {
+        Log.d("NFC", "Scanning...")
+        val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
+        val handle = NfcV.get(tag)
+        val received = ByteArray(360)
+        for (i in 0 until 43 step 3) {
+            val cmd = byteArrayOf(
+                0x02.toByte(),
+                0x23.toByte(),
+                i.toByte(),
+                0x02.toByte()
+            )
+            val response = sendCmd(handle, cmd)
+
+            if (response.size == 25) {
+                response.copyInto(received, i * 8, 1, response.size)
+            } else {
+                Log.d("NFC", "------ Invalid response: " + response.size)
+            }
+        }
+
+        return received;
+    }
+
+    private fun sendCmd(handle: NfcV, cmd: ByteArray): ByteArray {
+        val startTime = System.currentTimeMillis()
+        while (true) {
+            try {
+                if (handle.isConnected) {
+                    handle.close()
+                }
+                handle.connect()
+                val received = handle.transceive(cmd)
+                handle.close()
+                return received
+            } catch (ioException: IOException) {
+                if (System.currentTimeMillis() > startTime + 3000) {
+//                    Toast.makeText(mainActivityRef.get(), "Scan timed out!", Toast.LENGTH_SHORT).show()
+                    Log.d("NFC", "------ Scan timed out!")
+                    return byteArrayOf()
+                }
+                try {
+                    Thread.sleep(100)
+                } catch (interruptedException: InterruptedException) {
+                    return byteArrayOf()
+                }
+            }
         }
     }
 
