@@ -27,7 +27,7 @@ class NFCService(private val activity: Activity, val log: (value: Any) -> Any) {
 
     fun startListening() {
         log("Dispatch is active: $dispatchIsActive")
-        if (!dispatchIsActive) {
+//        if (!dispatchIsActive) {
             val nfcPendingIntent = PendingIntent.getActivity(activity, 0,
                 Intent(activity, javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
                 PendingIntent.FLAG_MUTABLE)
@@ -38,18 +38,18 @@ class NFCService(private val activity: Activity, val log: (value: Any) -> Any) {
                 arrayOf(NdefFormatable::class.java.name),
             )
             nfcAdapter.enableForegroundDispatch(activity, nfcPendingIntent, null, techListsArray)
-            dispatchIsActive = true
+//            dispatchIsActive = true
 
             log("------ NFC is listening.")
-        }
+//        }
     }
 
     fun stopListening() {
         log("Dispatch is active: $dispatchIsActive")
-        if (dispatchIsActive) {
+//        if (dispatchIsActive) {
             nfcAdapter.disableForegroundDispatch(activity)
-            dispatchIsActive = false
-        }
+//            dispatchIsActive = false
+//        }
     }
 
     fun checkIntentValidity(intent: Intent): Boolean {
