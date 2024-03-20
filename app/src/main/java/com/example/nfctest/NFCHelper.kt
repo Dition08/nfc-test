@@ -12,29 +12,14 @@ import android.nfc.tech.NfcV
 import android.util.Log
 import java.io.IOException
 
-class NFCService(private val activity: Activity) {
-    companion object {
-        private val validIntents = arrayOf(
-            NfcAdapter.ACTION_TAG_DISCOVERED,
-            NfcAdapter.ACTION_NDEF_DISCOVERED,
-            NfcAdapter.ACTION_TECH_DISCOVERED
-        )
-    }
+object NFCHelper {
+    private val validIntents = arrayOf(
+        NfcAdapter.ACTION_TAG_DISCOVERED,
+        NfcAdapter.ACTION_NDEF_DISCOVERED,
+        NfcAdapter.ACTION_TECH_DISCOVERED
+    )
 
-    private lateinit var nfcAdapter: NfcAdapter
-
-    var nfcIsAvailable = false
-//    private var dispatchIsActive = false
-
-    init {
-        val adapter = NfcAdapter.getDefaultAdapter(activity)
-        if (adapter != null) {
-            nfcIsAvailable = true
-            nfcAdapter = adapter
-        }
-    }
-
-    fun startListening() {
+    fun startListening(activity: Activity, nfcAdapter: NfcAdapter) {
 //        log("Dispatch is active: $dispatchIsActive")
 //        if (!dispatchIsActive) {
             val nfcPendingIntent = PendingIntent.getActivity(activity, 0,
@@ -53,16 +38,12 @@ class NFCService(private val activity: Activity) {
 //        }
     }
 
-    fun stopListening() {
+    fun stopListening(activity: Activity, nfcAdapter: NfcAdapter) {
 //        log("Dispatch is active: $dispatchIsActive")
 //        if (dispatchIsActive) {
             nfcAdapter.disableForegroundDispatch(activity)
 //            dispatchIsActive = false
 //        }
-    }
-
-    fun checkIfEnabled(): Boolean {
-        return nfcAdapter.isEnabled
     }
 
     fun checkIntentValidity(intent: Intent): Boolean {
