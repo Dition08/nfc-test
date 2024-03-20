@@ -15,6 +15,7 @@ class NFCService(private val activity: Activity, val log: (value: Any) -> Any) {
     private lateinit var nfcAdapter: NfcAdapter
 
     var nfcIsAvailable = false
+    private var dispatchIsActive = false
 
     init {
         val adapter = NfcAdapter.getDefaultAdapter(activity)
@@ -25,21 +26,28 @@ class NFCService(private val activity: Activity, val log: (value: Any) -> Any) {
     }
 
     fun startListening() {
-        val nfcPendingIntent = PendingIntent.getActivity(activity, 0,
-            Intent(activity, javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
-            PendingIntent.FLAG_MUTABLE)
-        val techListsArray = arrayOf(
-            arrayOf(NfcA::class.java.name),
-            arrayOf(NfcV::class.java.name),
-            arrayOf(Ndef::class.java.name),
-            arrayOf(NdefFormatable::class.java.name),
-        )
-        nfcAdapter.enableForegroundDispatch(activity, nfcPendingIntent, null, techListsArray)
-        log("------ NFC is listening.")
+        if (!dispatchIsActive) {
+            val nfcPendingIntent = PendingIntent.getActivity(activity, 0,
+                Intent(activity, javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                PendingIntent.FLAG_MUTABLE)
+            val techListsArray = arrayOf(
+                arrayOf(NfcA::class.java.name),
+                arrayOf(NfcV::class.java.name),
+                arrayOf(Ndef::class.java.name),
+                arrayOf(NdefFormatable::class.java.name),
+            )
+            nfcAdapter.enableForegroundDispatch(activity, nfcPendingIntent, null, techListsArray)
+            dispatchIsActive = true
+
+            log("------ NFC is listening.")
+        }
     }
 
     fun stopListening() {
-        nfcAdapter.disableForegroundDispatch(activity)
+        if (dispatchIsActive) {
+            nfcAdapter.disableForegroundDispatch(activity)
+            dispatchIsActive = false
+        }
     }
 
     fun checkIntentValidity(intent: Intent): Boolean {

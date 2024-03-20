@@ -32,7 +32,7 @@ class HttpService() {
         return withContext(Dispatchers.IO) {
             val body: RequestBody = json.toRequestBody(JSON)
             val request: Request = Request.Builder()
-                .url(decodingUrl)
+                .url(url)
                 .post(body)
                 .build()
             val response = client.newCall(request).execute()

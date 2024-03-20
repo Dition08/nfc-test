@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.Vibrator
+import android.util.Log
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import java.util.Date
@@ -39,10 +40,6 @@ class MainActivity : ComponentActivity() {
         super.onStart()
 
         log("Starting...")
-
-        if (nfcService.nfcIsAvailable) {
-            nfcService.startListening()
-        }
     }
 
     override fun onPause() {
@@ -50,13 +47,19 @@ class MainActivity : ComponentActivity() {
 
         log("Pausing...")
 
-        nfcService.stopListening()
+        if (nfcService.nfcIsAvailable) {
+            nfcService.stopListening()
+        }
     }
 
     override fun onResume() {
         super.onResume()
 
         log("Resuming...")
+
+        if (nfcService.nfcIsAvailable) {
+            nfcService.startListening()
+        }
 
         handleNFCIntent(intent)
     }
@@ -75,7 +78,6 @@ class MainActivity : ComponentActivity() {
                 received = nfcService.requestDataFromDevice(intent)
             } catch (error: Error) {
                 notifyUser("${Status.SCANFAILURE}\n$error")
-//                Log.d("NFC", "------ NFC error: $error")
                 log("------ NFC error: $error")
                 return
             }
@@ -93,10 +95,8 @@ class MainActivity : ComponentActivity() {
             answer = httpService.sendToDecode(receivedHex, measureDate)
         } catch (error: Error) {
             notifyUser("${Status.HTTPFAILURE}\n$error")
-//            Log.d("POST", "------ HTTP request error: $error")
             log("------ HTTP request error: $error")
         }
-//        Log.d("POST", "------ Received: $answer")
         log("------ Received: $answer")
 
         notifyUser(Status.SUCСESS)
@@ -114,6 +114,7 @@ class MainActivity : ComponentActivity() {
 
     private fun log(value: Any) {
         logView.text = logView.text.toString().plus("\n$value")
+        Log.d("APP", "------ NFC error: $value")
     }
 
 //    private fun handleNFCIntent(intent: Intent) {
