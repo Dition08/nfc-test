@@ -12,10 +12,18 @@ import android.nfc.tech.NfcV
 import java.io.IOException
 
 class NFCService(private val activity: Activity, val log: (value: Any) -> Any) {
+    companion object {
+        private val validIntents = arrayOf(
+            NfcAdapter.ACTION_TAG_DISCOVERED,
+            NfcAdapter.ACTION_NDEF_DISCOVERED,
+            NfcAdapter.ACTION_TECH_DISCOVERED
+        )
+    }
+
     private lateinit var nfcAdapter: NfcAdapter
 
     var nfcIsAvailable = false
-    private var dispatchIsActive = false
+//    private var dispatchIsActive = false
 
     init {
         val adapter = NfcAdapter.getDefaultAdapter(activity)
@@ -45,17 +53,19 @@ class NFCService(private val activity: Activity, val log: (value: Any) -> Any) {
     }
 
     fun stopListening() {
-        log("Dispatch is active: $dispatchIsActive")
+//        log("Dispatch is active: $dispatchIsActive")
 //        if (dispatchIsActive) {
             nfcAdapter.disableForegroundDispatch(activity)
 //            dispatchIsActive = false
 //        }
     }
 
+    fun checkAvailability(): Boolean {
+        return nfcAdapter.isEnabled
+    }
+
     fun checkIntentValidity(intent: Intent): Boolean {
-        return intent.action == NfcAdapter.ACTION_TAG_DISCOVERED ||
-                intent.action == NfcAdapter.ACTION_NDEF_DISCOVERED ||
-                intent.action == NfcAdapter.ACTION_TECH_DISCOVERED
+        return validIntents.contains(intent.action)
     }
 
     fun requestDataFromDevice(intent: Intent): ByteArray {

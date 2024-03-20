@@ -2,8 +2,10 @@ package com.example.nfctest
 
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.os.Vibrator
+import android.provider.Settings
 import android.util.Log
 import android.widget.TextView
 import androidx.activity.ComponentActivity
@@ -35,6 +37,8 @@ class MainActivity : ComponentActivity() {
         } else {
             updateState(Status.NOTSUPPORTED)
         }
+
+        handleNFCIntent(intent)
     }
 
     override fun onStart() {
@@ -48,6 +52,9 @@ class MainActivity : ComponentActivity() {
 
         log("Resuming...")
 
+        if (nfcService.checkAvailability()) {
+            openNfcSettings()
+        }
         if (nfcService.nfcIsAvailable) nfcService.startListening()
     }
 
@@ -72,6 +79,15 @@ class MainActivity : ComponentActivity() {
 
         setIntent(intent)
         handleNFCIntent(intent)
+    }
+
+    private fun openNfcSettings() {
+        val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            Intent(Settings.Panel.ACTION_NFC)
+        } else {
+            Intent(Settings.ACTION_WIRELESS_SETTINGS)
+        }
+        startActivity(intent)
     }
 
     private fun handleNFCIntent(intent: Intent) {
