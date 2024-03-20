@@ -42,8 +42,8 @@ class MainActivity : ComponentActivity() {
         log("Starting...")
     }
 
-    override fun onPause() {
-        super.onPause()
+    override fun onStop() {
+        super.onStop()
 
         log("Pausing...")
 
