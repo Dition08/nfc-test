@@ -60,7 +60,7 @@ class NFCService(private val activity: Activity, val log: (value: Any) -> Any) {
 //        }
     }
 
-    fun checkAvailability(): Boolean {
+    fun checkIfEnabled(): Boolean {
         return nfcAdapter.isEnabled
     }
 

@@ -52,7 +52,7 @@ class MainActivity : ComponentActivity() {
 
         log("Resuming...")
 
-        if (nfcService.checkAvailability()) {
+        if (!nfcService.checkIfEnabled()) {
             openNfcSettings()
         }
         if (nfcService.nfcIsAvailable) nfcService.startListening()
