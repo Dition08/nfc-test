@@ -36,12 +36,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onStart() {
-        super.onStart()
-
-        log("Starting...")
-    }
-
     override fun onStop() {
         super.onStop()
 
@@ -74,14 +68,14 @@ class MainActivity : ComponentActivity() {
         log("Processing intent:\n${intent.action}")
         if (nfcService.checkIntentValidity(intent)) {
             val received: ByteArray
-            try {
+//            try {
                 log("Scanning...")
                 received = nfcService.requestDataFromDevice(intent)
-            } catch (error: Error) {
-                notifyUser("${Status.SCANFAILURE}\n$error")
-                log("------ NFC error:\n$error")
-                return
-            }
+//            } catch (error: Error) {
+//                notifyUser("${Status.SCANFAILURE}\n$error")
+//                log("------ NFC error:\n$error")
+//                return
+//            }
             val measureDate = Date()
             notifyServer(received, measureDate)
         }
@@ -91,13 +85,13 @@ class MainActivity : ComponentActivity() {
     private fun notifyServer(received: ByteArray, measureDate: Date) {
         val receivedHex = received.toHexString()
         var answer = "Failed to receive data from server."
-        try {
+//        try {
             log("Making HTTP request...")
             answer = httpService.sendToDecode(receivedHex, measureDate)
-        } catch (error: Error) {
-            notifyUser("${Status.HTTPFAILURE}\n$error")
-            log("------ HTTP request error: $error")
-        }
+//        } catch (error: Error) {
+//            notifyUser("${Status.HTTPFAILURE}\n$error")
+//            log("------ HTTP request error: $error")
+//        }
         log("------ Received: $answer")
 
         notifyUser(Status.SUCСESS)
