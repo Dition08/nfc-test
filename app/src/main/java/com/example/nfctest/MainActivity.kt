@@ -48,9 +48,7 @@ class MainActivity : ComponentActivity() {
 
         log("Resuming...")
 
-        if (nfcService.nfcIsAvailable) {
-            nfcService.startListening()
-        }
+        if (nfcService.nfcIsAvailable) nfcService.startListening()
     }
 
     override fun onPause() {
@@ -58,9 +56,7 @@ class MainActivity : ComponentActivity() {
 
         log("Pausing...")
 
-        if (nfcService.nfcIsAvailable) {
-            nfcService.stopListening()
-        }
+        if (nfcService.nfcIsAvailable) nfcService.stopListening()
     }
 
     override fun onStop() {
@@ -81,10 +77,8 @@ class MainActivity : ComponentActivity() {
     private fun handleNFCIntent(intent: Intent) {
         log("Processing intent:\n${intent.action}")
         if (nfcService.checkIntentValidity(intent)) {
-            val received: ByteArray
+            val received: ByteArray = nfcService.requestDataFromDevice(intent)
 //            try {
-            log("Scanning...")
-            received = nfcService.requestDataFromDevice(intent)
 //            } catch (error: Error) {
 //                notifyUser("${Status.SCANFAILURE}\n$error")
 //                log("------ NFC error:\n$error")

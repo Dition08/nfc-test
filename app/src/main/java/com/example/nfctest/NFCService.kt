@@ -59,6 +59,7 @@ class NFCService(private val activity: Activity, val log: (value: Any) -> Any) {
     }
 
     fun requestDataFromDevice(intent: Intent): ByteArray {
+        log("Scanning...")
         val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
         val handle = NfcV.get(tag)
         val received = ByteArray(360)
