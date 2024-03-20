@@ -37,6 +37,10 @@ class NFCService(private val activity: Activity) {
         nfcAdapter.enableForegroundDispatch(activity, nfcPendingIntent, null, techListsArray)
     }
 
+    fun stopListening() {
+        nfcAdapter.disableForegroundDispatch(activity)
+    }
+
     fun checkIntentValidity(intent: Intent): Boolean {
         return intent.action == NfcAdapter.ACTION_NDEF_DISCOVERED ||
                 intent.action == NfcAdapter.ACTION_TECH_DISCOVERED

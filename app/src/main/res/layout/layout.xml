@@ -1,17 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/primary"
     android:theme="@style/Theme.NFCTest">
 
     <ImageView
-        android:id="@+id/imageView2"
+        android:id="@+id/BrandLogo"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:contentDescription="GUTA logo"
         android:scaleX="0.6"
         android:scaleY="0.6"
-        android:src="@drawable/guta_logo" />
+        android:src="@drawable/guta_logo"
+        tools:ignore="ImageContrastCheck" />
 
     <ScrollView
         android:layout_width="match_parent"
@@ -22,20 +25,11 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-<!--            <Button-->
-<!--                android:id="@+id/button"-->
-<!--                style="@android:style/Widget.DeviceDefault.Button"-->
-<!--                android:layout_width="match_parent"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:layout_weight="1"-->
-<!--                android:background="@color/primaryVariant"-->
-<!--                android:text="Сканировать"-->
-<!--                android:textAppearance="@android:style/TextAppearance.Material.Large" />-->
-
             <TextView
                 android:id="@+id/textView"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="0dp"
+                android:layout_margin="5dp"
                 android:layout_weight="1"
                 android:text="..."
                 android:textAlignment="center"
@@ -43,5 +37,15 @@
 
         </LinearLayout>
     </ScrollView>
+
+    <!--            <Button-->
+    <!--                android:id="@+id/button"-->
+    <!--                style="@android:style/Widget.DeviceDefault.Button"-->
+    <!--                android:layout_width="match_parent"-->
+    <!--                android:layout_height="wrap_content"-->
+    <!--                android:layout_weight="1"-->
+    <!--                android:background="@color/primaryVariant"-->
+    <!--                android:text="Сканировать"-->
+    <!--                android:textAppearance="@android:style/TextAppearance.Material.Large" />-->
 
 </FrameLayout>
