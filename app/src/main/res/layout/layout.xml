@@ -10,7 +10,7 @@
         android:id="@+id/BrandLogo"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:contentDescription="GUTA logo"
+        android:contentDescription="@string/logo_description"
         android:scaleX="0.6"
         android:scaleY="0.6"
         android:src="@drawable/guta_logo"
@@ -34,13 +34,13 @@
                 android:textAlignment="center"
                 android:textAppearance="@android:style/TextAppearance.Material.Large" />
 
-            <TextView
-                android:id="@+id/logs"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
-                android:layout_weight="1"
-                android:textAlignment="textStart" />
+<!--            <TextView-->
+<!--                android:id="@+id/logs"-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:layout_marginTop="5dp"-->
+<!--                android:layout_weight="1"-->
+<!--                android:textAlignment="textStart" />-->
 
         </LinearLayout>
     </ScrollView>

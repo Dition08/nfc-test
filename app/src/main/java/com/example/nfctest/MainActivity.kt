@@ -32,7 +32,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var deviceService: DeviceService
 
     private lateinit var textView: TextView
-    private lateinit var logView: TextView
+//    private lateinit var logView: TextView
     private lateinit var nfcAdapter: NfcAdapter
 
     private var nfcIsAvailable = false
@@ -42,7 +42,7 @@ class MainActivity : ComponentActivity() {
 
         setContentView(R.layout.layout)
         textView = findViewById(R.id.textView)
-        logView = findViewById(R.id.logs)
+//        logView = findViewById(R.id.logs)
         val adapter = NfcAdapter.getDefaultAdapter(this)
         if (adapter != null) {
             nfcIsAvailable = true
@@ -231,7 +231,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun log(value: Any) {
-        logView.text = logView.text.toString().plus("\n$value")
+//        logView.text = logView.text.toString().plus("\n$value")
         Log.d("APP", "$value")
     }
 }
