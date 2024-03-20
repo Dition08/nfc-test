@@ -19,6 +19,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContentView(R.layout.layout)
         textView = findViewById(R.id.textView)
         logView = findViewById(R.id.logs)
@@ -50,29 +51,30 @@ class MainActivity : ComponentActivity() {
         if (nfcService.nfcIsAvailable) {
             nfcService.startListening()
         }
-
-        handleNFCIntent(intent)
     }
 
     override fun onPause() {
         super.onPause()
 
         log("Pausing...")
-    }
-
-    override fun onStop() {
-        super.onStop()
-
-        log("Stopping...")
 
         if (nfcService.nfcIsAvailable) {
             nfcService.stopListening()
         }
     }
 
+    override fun onStop() {
+        super.onStop()
+
+        log("Stopping...")
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
 
+        log("Processing new intent...")
+
+        setIntent(intent)
         handleNFCIntent(intent)
     }
 
@@ -97,13 +99,13 @@ class MainActivity : ComponentActivity() {
     private fun notifyServer(received: ByteArray, measureDate: Date) {
         val receivedHex = received.toHexString()
         var answer = "Failed to receive data from server."
-//        try {
-        log("Making HTTP request...")
-        answer = httpService.sendToDecode(receivedHex, measureDate)
-//        } catch (error: Error) {
-//            notifyUser("${Status.HTTPFAILURE}\n$error")
-//            log("------ HTTP request error: $error")
-//        }
+        try {
+            log("Making HTTP request...")
+            answer = httpService.sendToDecode(receivedHex, measureDate)
+        } catch (error: Error) {
+            notifyUser("${Status.HTTPFAILURE}\n$error")
+            log("------ HTTP request error: $error")
+        }
         log("------ Received: $answer")
 
         notifyUser(Status.SUCСESS)
