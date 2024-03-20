@@ -12,7 +12,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 import java.util.Date
 
-class HttpService {
+class HttpService() {
     private val decodingUrl = "https://libre-backend.oxton.ru/insert"
     private val decodingPassword = "YP98747cq3MtcdZr2KTdVqfeDmxmMmvV"
     private val JSON: MediaType = "application/json".toMediaType()

@@ -9,11 +9,11 @@ import android.nfc.tech.Ndef
 import android.nfc.tech.NdefFormatable
 import android.nfc.tech.NfcA
 import android.nfc.tech.NfcV
-import android.util.Log
 import java.io.IOException
 
-class NFCService(private val activity: Activity) {
+class NFCService(private val activity: Activity, val log: (value: Any) -> Any) {
     private lateinit var nfcAdapter: NfcAdapter
+
     var nfcIsAvailable = false
 
     init {
@@ -35,6 +35,7 @@ class NFCService(private val activity: Activity) {
             arrayOf(NdefFormatable::class.java.name),
         )
         nfcAdapter.enableForegroundDispatch(activity, nfcPendingIntent, null, techListsArray)
+        log("------ NFC is listening.")
     }
 
     fun stopListening() {
@@ -46,7 +47,7 @@ class NFCService(private val activity: Activity) {
                 intent.action == NfcAdapter.ACTION_TECH_DISCOVERED
     }
 
-    fun requestDataFromDevice(intent: Intent): ByteArray? {
+    fun requestDataFromDevice(intent: Intent): ByteArray {
         val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
         val handle = NfcV.get(tag)
         val received = ByteArray(360)
@@ -62,8 +63,7 @@ class NFCService(private val activity: Activity) {
             if (response.size == 25) {
                 response.copyInto(received, i * 8, 1, response.size)
             } else {
-                Log.d("NFC", "------ Invalid response: " + response.size)
-                return null
+                log("------ Invalid response: " + response.size)
             }
         }
 
@@ -84,7 +84,7 @@ class NFCService(private val activity: Activity) {
             } catch (ioException: IOException) {
                 if (System.currentTimeMillis() > startTime + 3000) {
 //                    Toast.makeText(mainActivityRef.get(), "Scan timed out!", Toast.LENGTH_SHORT).show()
-                    Log.d("NFC", "------ Scan timed out!")
+                    log("------ Scan timed out!")
                     return byteArrayOf()
                 }
                 try {
