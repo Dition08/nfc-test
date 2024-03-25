@@ -13,7 +13,7 @@ import java.io.IOException
 import java.util.Date
 
 class HttpService() {
-    private val decodingUrl = "https://libre-backend.oxton.ru/insert"
+    private val decodingUrl = "https://gmbackend.gutagroup.ru/insert"
     private val decodingPassword = "YP98747cq3MtcdZr2KTdVqfeDmxmMmvV"
     private val JSON: MediaType = "application/json".toMediaType()
     private val client = OkHttpClient()
